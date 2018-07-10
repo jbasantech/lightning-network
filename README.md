@@ -20,7 +20,7 @@ Podemos utilizar el siguiente comando para actualizar nuestro kernel a la últim
 ```
 sudo apt-get update && sudo apt-get upgrade && sudo apt-get dist-upgrade
 ```
-Mi sistema es Linux Mint 18.3 y utilizo este script para la instalación de Docker ce (docker-instalación.sh) (comunity edition):
+Mi sistema es Linux Mint 18.3 y utilizo este script **(docker-instalación.sh)** para la instalación de Docker-ce:
 ```
 #!/usr/bin/env bash
 
