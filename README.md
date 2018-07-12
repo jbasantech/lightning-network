@@ -129,3 +129,41 @@ bitcoin-cli getnetworkinfo
 
 ```
 El script contiene un único comando que se ejecuta y luego se limpia así mismo. Hay que tener en cuenta que como hemos ocultado los puertos RPC, es necesario ejecutar la CLI en la misma red que los procesos de docker. Arriba se puede ver mi resultado al ejecutar **bitcoin-cli get networkinfo**
+Una vez comprobado que tu nodo está sincronizado con la red (comprueba que el último block en **https://www.blockchain.com/explorer** coincide con el resultado del comando **bitcoin-cli getblockcount**) podemos iniciar el nodo de lightning. El proceso es similar al de **bitcoind** solo que más rapido.
+```
+root@docker-s-6vcpu-16gb-nyc3-01:~# docker run --rm --name lightning --network container:bitcoind_mainnet -v /scratch/bitcoin/mainnet/bitcoind:/root/.bitcoin -v /scratch/bitcoin/mainnet/clightning:/root/.lightning --entrypoint /usr/bin/lightningd cdecker/lightningd:latest --network=bitcoin --log-level=debug
+```
+Hay que tener en cuenta que estamos ejecutando el nodo de lightining en la misma interfaz de red de docker donde hemos ejecutado el nodo de Bitcoin, por lo que los clientes de RPC pueden chatear entre sí. Usaremos el mismo truco con la CLI de lightning:
+```
+touch /usr/local/bin/lightning-cli
+```
+Incluimos el siguiente comando:
+```
+#!/usr/bin/env bash
+docker run --rm -v /bitcoin/mainnet/clightning:/root/.lightning --entrypoint /usr/bin/lightning-cli cdecker/lightningd:latest "$@"
+```
+Lo hacemos ejecutable:
+```
+chmod +x /usr/local/bin/lightning-cli
+```
+Y ejecutamos:
+```
+lightning-cli getinfo
+{
+  "id": "03cbabf3df186c29487fa8da334eef87b82e9744962f7602189d49982e26dc2647", 
+  "port": 9735, 
+  "address": [
+  ], 
+  "binding": [
+    {
+      "type": "ipv6", 
+      "address": "::", 
+      "port": 9735
+    }
+  ], 
+  "version": "v0.5.2-2016-11-21-2796-g27a186b", 
+  "blockheight": 531646, 
+  "network": "bitcoin"
+}
+```
+¡Enhorabuena! Tienes un nodo de lightning en marcha... solo queda conectarlo a otros nodos y abrir canales de pago. Esta ha sido la parte más difícil pero seguramente la más gratificante.
