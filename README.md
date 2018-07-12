@@ -2,7 +2,7 @@
 
 Con los canales de pago de Lightning, Bitcoin tiene la oportunidad de demostrar que puede escalar.
 
-El objetivo del tutorial es ir de la nada a tener un nodo de Bitcoin y otro de LN en menos de 24horas. La mayor parte del tiempo se irá en la sincronización de la cadena de bloques de Bitcoin, por lo que es interesante comezar el proceso antes de ir a la cama y terminarlo el día siguiente.
+El objetivo del tutorial es ir de la nada a tener un nodo de Bitcoin y otro de LN en menos de 24horas. La mayor parte del tiempo se irá en la sincronización de la cadena de bloques de Bitcoin, por lo que es interesante comenzar el proceso antes de ir a la cama y terminarlo el día siguiente.
 
 Vamos a instalar todo lo necesario en una instancia de Docker, por lo que empezaremos por instalar Docker.
 
@@ -11,7 +11,7 @@ Docker soporta sistemas de 64 bits con Linux kernel 3.10+. Comprobamos nuestro s
 uname -m 
   x86_64
 ```
-Versión del kernel:
+Para comprobar la versión del kernel:
 ```
 uname -r
   Linux jb-system 4.4.0-124-generic #148-Ubuntu SMP Wed May 2 13:00:18 UTC 2018 x86_64 x86_64 x86_64 GNU/Linux
@@ -51,4 +51,81 @@ Para comprobar si la instalación funciona Docker provee de una imagen muy simpl
 ```
 docker run hello-world
 ```
-Ahora estamos listos para proceder con la instalación del nodo Bitcoin:
+Ahora estamos listos para proceder con la instalación del nodo Bitcoin.
+Clonamos el repositorio:
+```
+https://github.com/otsarri/lightning-network.git
+```
+Construimos **(build)** la imagen de docker:
+```
+cd lightning-node
+docker build . -t otsarri/bitcoind
+```
+Ejecutamos el nodo **bitcoind**:
+```
+mkdir -p /bitcoin/mainnet/bitcoind
+docker run --name bitcoind_mainnet -d -v /bitcoin/mainnet/bitcoind:/data -p 8333:8333 -p 9735:9735 otsarri/bitcoind:latest
+```
+Ejecuta el comando **tail** para comprobar el progreso:
+```
+docker logs bitcoind_mainnet --tail "10"
+```
+Lo que estamos haciendo aquí es configurar un proceso de daemon **bitcoind (versión 0.16.1)** que se ejecuta en una red local privada de docker. Los datos de blockchain se guardan en /bitcoin/mainnet/bitcoind y exponemos los puertos necesarios para que los nodos bitcoin y lightning escuchen otros nodos (8333 y 9735, respectivamente). Así mismo ocultamos los puertos RPC para que no estén expuestos al público.
+Una vez ejecutado el comando **(docker run)**, dependiendo de tu red la sincronización tardará varias horas y tomará alrededor de 180GB de espacio en el disco. Periodicamente puedes utilizar el comando **tail** para comprobar el progreso, una vez que llegue a la fecha de hoy la sincronización será completa.
+
+A continuación vamos a configurar la herramienta de línea de comandos de bitcoin **(bitcoin-cli)**, para ello creamos el siguiente atajo:
+```
+touch /usr/local/bin/bitcoin-cli
+```
+En el que incluimos el siguiente comando:
+```
+docker run --rm --network container:bitcoind_mainnet -v /bitcoin/mainnet/bitcoind:/data otsarri/bitcoind:latest bitcoin-cli "$@"
+```
+Hacemos del archivo un ejecutable:
+```
+chmod +x /usr/local/bin/bitcoin-cli
+```
+Comprobamos la interfaz:
+```
+bitcoin-cli getnetworkinfo
+{
+  "version": 160000,
+  "subversion": "/Satoshi:0.16.0/",
+  "protocolversion": 70015,
+  "localservices": "000000000000040c",
+  "localrelay": true,
+  "timeoffset": -9,
+  "networkactive": true,
+  "connections": 8,
+  "networks": [
+    {
+      "name": "ipv4",
+      "limited": false,
+      "reachable": true,
+      "proxy": "",
+      "proxy_randomize_credentials": false
+    },
+    {
+      "name": "ipv6",
+      "limited": false,
+      "reachable": true,
+      "proxy": "",
+      "proxy_randomize_credentials": false
+    },
+    {
+      "name": "onion",
+      "limited": true,
+      "reachable": false,
+      "proxy": "",
+      "proxy_randomize_credentials": false
+    }
+  ],
+  "relayfee": 0.00001000,
+  "incrementalfee": 0.00001000,
+  "localaddresses": [
+  ],
+  "warnings": ""
+}
+
+```
+El script contiene un único comando que se ejecuta y luego se limpia así mismo. Hay que tener en cuenta que como hemos ocultado los puertos RPC, es necesario ejecutar la CLI en la misma red que los procesos de docker. Arriba se puede ver mi resultado al ejecutar **bitcoin-cli get networkinfo**
