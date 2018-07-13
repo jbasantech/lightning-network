@@ -131,7 +131,25 @@ bitcoin-cli getnetworkinfo
 El script contiene un único comando que se ejecuta y luego se limpia así mismo. Hay que tener en cuenta que como hemos ocultado los puertos RPC, es necesario ejecutar la CLI en la misma red que los procesos de docker. Arriba se puede ver mi resultado al ejecutar **bitcoin-cli get networkinfo**
 Una vez comprobado que tu nodo está sincronizado con la red (comprueba que el último block en **https://www.blockchain.com/explorer** coincide con el resultado del comando **bitcoin-cli getblockcount**) podemos iniciar el nodo de lightning. El proceso es similar al de **bitcoind** solo que más rapido.
 ```
-docker run --rm --name lightning --network container:bitcoind_mainnet -v /scratch/bitcoin/mainnet/bitcoind:/root/.bitcoin -v /scratch/bitcoin/mainnet/clightning:/root/.lightning --entrypoint /usr/bin/lightningd cdecker/lightningd:latest --network=bitcoin --log-level=debug
+docker run --rm --name lightning --network container:CONTAINER-NAME -v /scratch/bitcoin/mainnet/bitcoind:/root/.bitcoin -v /scratch/bitcoin/mainnet/clightning:/root/.lightning --entrypoint /usr/bin/lightningd cdecker/lightningd:latest --network=bitcoin --log-level=debug
+```
+Por conveniencia creamos un ejecutable para iniciar el nodo de lightning:
+```
+touch /usr/local/bin/lightningnode-start
+```
+Editamos el archivo con **nano** e incluimos el comando de docker:
+```
+nano /usr/local/bin/lightningnode-start
+#!/usr/bin/env bash
+docker run --rm --name lightning --network container:CONTAINER-NAME -v /scratch/bitcoin/mainnet/bitcoind:/root/.bitcoin -v /scratch/bitcoin/mainnet/clightning:/root/.lightning --entrypoint /usr/bin/lightningd cdecker/lightningd:latest --network=bitcoin --log-level=debug
+```
+Hacemos el archivo ejecutable:
+```
+chmod +x /usr/local/bin/lightningnode-start
+```
+A partir de ahora cada vez que queramos iniciar el nodo de lightning solo necesitermos invocar el archivo creado:
+```
+lightiningnode-start
 ```
 Hay que tener en cuenta que estamos ejecutando el nodo de lightining en la misma interfaz de red de docker donde hemos ejecutado el nodo de Bitcoin, por lo que los clientes de RPC pueden chatear entre sí. Usaremos el mismo truco con la CLI de lightning:
 ```
@@ -167,7 +185,7 @@ lightning-cli getinfo
 }
 ```
 ¡Enhorabuena! Tienes un nodo de lightning en marcha... solo queda conectarlo a otros nodos y abrir canales de pago. Esta ha sido la parte más difícil pero seguramente la más gratificante.
-## ¡Envía a tu nodo de lightning unos shatosis!
+## ¡Envía a tu nodo de lightning unos satoshis!
 Envía a tu nodo de lightning unos 0.002 shatosis (unos $13 ahora mismo). Recuerda que ahora mismo todo esto es muy nuevo y con errores por lo que experimenta con cantidades que estás dispuesto a perder. Para recibir unos coins lo primero que debemos hacer es genera una dirección de billetera.
 ```
 lightning-cli newaddr
@@ -175,7 +193,7 @@ lightning-cli newaddr
   "address": "3QY9fk4VsWS7NeHGMHJjxXdw2SbjnAr1M7"
 }
 ```
-Una vez enviados los shatosis a la nueve dirección, espera por unas cuantas confirmaciones y comprueba tu nuevo balance:
+Una vez enviados los satoshis a la nueve dirección, espera por unas cuantas confirmaciones y comprueba tu nuevo balance:
 ```lightning-cli listfunds
 {
   "outputs": [
@@ -184,3 +202,30 @@ Una vez enviados los shatosis a la nueve dirección, espera por unas cuantas con
   ]
 }
 ```
+## Conecta con otro nodo
+Aqui es donde las cosas comienzan a ponerse interesantes. Utilizamos este sitio web https://lnmainnet.gaben.win/ para buscar otros nodos de lightning. Lo más interesante es conectarse a un nodo con muchas conexiones, aunque puedes elegir el que más te guste. Recuerda que cuanto mayor sea la conectividad, menor será el número de saltos en la ruta de pagos y menores las tarifas.
+```
+lightning-cli connect 03e8f8e8666030a241a5d790cef81625620650621fb4aa7f0dca867c90e2e2c083 35.231.14.198 9735
+{
+  "id": "03e8f8e8666030a241a5d790cef81625620650621fb4aa7f0dca867c90e2e2c083"
+}
+
+```
+Comprueba que tu nodo está **GOSSIPING** con el nodo al que te has conectado:
+```
+lightning-cli listpeers
+{
+  "peers": [
+    {
+      "state": "GOSSIPING", 
+      "id": "03e8f8e8666030a241a5d790cef81625620650621fb4aa7f0dca867c90e2e2c083", 
+      "netaddr": [
+        "35.231.14.198:9735"
+      ], 
+      "connected": true, 
+      "owner": "lightning_gossipd"
+    }
+  ]
+}
+```
+
