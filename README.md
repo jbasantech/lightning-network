@@ -131,7 +131,7 @@ bitcoin-cli getnetworkinfo
 El script contiene un único comando que se ejecuta y luego se limpia así mismo. Hay que tener en cuenta que como hemos ocultado los puertos RPC, es necesario ejecutar la CLI en la misma red que los procesos de docker. Arriba se puede ver mi resultado al ejecutar **bitcoin-cli get networkinfo**
 Una vez comprobado que tu nodo está sincronizado con la red (comprueba que el último block en **https://www.blockchain.com/explorer** coincide con el resultado del comando **bitcoin-cli getblockcount**) podemos iniciar el nodo de lightning. El proceso es similar al de **bitcoind** solo que más rapido.
 ```
-root@docker-s-6vcpu-16gb-nyc3-01:~# docker run --rm --name lightning --network container:bitcoind_mainnet -v /scratch/bitcoin/mainnet/bitcoind:/root/.bitcoin -v /scratch/bitcoin/mainnet/clightning:/root/.lightning --entrypoint /usr/bin/lightningd cdecker/lightningd:latest --network=bitcoin --log-level=debug
+docker run --rm --name lightning --network container:bitcoind_mainnet -v /scratch/bitcoin/mainnet/bitcoind:/root/.bitcoin -v /scratch/bitcoin/mainnet/clightning:/root/.lightning --entrypoint /usr/bin/lightningd cdecker/lightningd:latest --network=bitcoin --log-level=debug
 ```
 Hay que tener en cuenta que estamos ejecutando el nodo de lightining en la misma interfaz de red de docker donde hemos ejecutado el nodo de Bitcoin, por lo que los clientes de RPC pueden chatear entre sí. Usaremos el mismo truco con la CLI de lightning:
 ```
@@ -167,3 +167,20 @@ lightning-cli getinfo
 }
 ```
 ¡Enhorabuena! Tienes un nodo de lightning en marcha... solo queda conectarlo a otros nodos y abrir canales de pago. Esta ha sido la parte más difícil pero seguramente la más gratificante.
+## ¡Envía a tu nodo de lightning unos shatosis!
+Envía a tu nodo de lightning unos 0.002 shatosis (unos $13 ahora mismo). Recuerda que ahora mismo todo esto es muy nuevo y con errores por lo que experimenta con cantidades que estás dispuesto a perder. Para recibir unos coins lo primero que debemos hacer es genera una dirección de billetera.
+```
+lightning-cli newaddr
+{
+  "address": "3QY9fk4VsWS7NeHGMHJjxXdw2SbjnAr1M7"
+}
+```
+Una vez enviados los shatosis a la nueve dirección, espera por unas cuantas confirmaciones y comprueba tu nuevo balance:
+```lightning-cli listfunds
+{
+  "outputs": [
+  ], 
+  "channels": [
+  ]
+}
+```
